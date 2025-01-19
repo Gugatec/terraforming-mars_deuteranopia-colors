@@ -1,5 +1,5 @@
 import {expect} from 'chai';
-import {Game} from '../../../src/server/Game';
+import {IGame} from '../../../src/server/IGame';
 import {TestPlayer} from '../../TestPlayer';
 import {testGame} from '../../TestGame';
 import {runAllActions, forceGenerationEnd, cast} from '../../TestingUtils';
@@ -12,7 +12,7 @@ describe('Xu', function() {
   let card: Xu;
   let player: TestPlayer;
   let player2: TestPlayer;
-  let game: Game;
+  let game: IGame;
 
   beforeEach(() => {
     card = new Xu();
@@ -70,7 +70,7 @@ describe('Xu', function() {
   });
 
 
-  it('Takes OPG action, does not have the most venus tags', function() {
+  it('Takes OPG action, does not Have the most Venus tags in play', function() {
     player2.playedCards.push(fakeCard({tags: [Tag.VENUS, Tag.VENUS]}));
 
     expect(player.megaCredits).to.eq(0);

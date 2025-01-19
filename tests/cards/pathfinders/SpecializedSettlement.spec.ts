@@ -1,9 +1,9 @@
 import {expect} from 'chai';
 import {SpecializedSettlement} from '../../../src/server/cards/pathfinders/SpecializedSettlement';
-import {Game} from '../../../src/server/Game';
+import {IGame} from '../../../src/server/IGame';
 import {TestPlayer} from '../../TestPlayer';
 import {cast, runAllActions} from '../../TestingUtils';
-import {EmptyBoard} from '../../ares/EmptyBoard';
+import {EmptyBoard} from '../../testing/EmptyBoard';
 import {Units} from '../../../src/common/Units';
 import {SelectSpace} from '../../../src/server/inputs/SelectSpace';
 import {SpaceBonus} from '../../../src/common/boards/SpaceBonus';
@@ -12,11 +12,12 @@ import {OrOptions} from '../../../src/server/inputs/OrOptions';
 import {RoboticWorkforce} from '../../../src/server/cards/base/RoboticWorkforce';
 import {SelectCard} from '../../../src/server/inputs/SelectCard';
 import {testGame} from '../../TestGame';
+import {OneOrArray} from '../../../src/common/utils/types';
 
 describe('SpecializedSettlement', function() {
   let card: SpecializedSettlement;
   let player: TestPlayer;
-  let game: Game;
+  let game: IGame;
 
   beforeEach(function() {
     card = new SpecializedSettlement();
@@ -27,9 +28,9 @@ describe('SpecializedSettlement', function() {
 
   it('Can play', () => {
     player.production.override({energy: 0});
-    expect(player.simpleCanPlay(card)).is.false;
+    expect(card.canPlay(player)).is.false;
     player.production.override({energy: 1});
-    expect(player.simpleCanPlay(card)).is.true;
+    expect(card.canPlay(player)).is.true;
   });
 
   it('play', function() {
@@ -125,10 +126,14 @@ describe('SpecializedSettlement', function() {
 
     const roboticWorkforce = new RoboticWorkforce();
     expect(roboticWorkforce.canPlay(player)).is.false;
-    expect(roboticWorkforce.play(player)).is.undefined;
 
     player.production.override(Units.of({energy: 1}));
-    const selectCard = cast(roboticWorkforce.play(player), SelectCard);
+
+    expect(roboticWorkforce.canPlay(player)).is.true;
+
+    cast(roboticWorkforce.play(player), undefined);
+    runAllActions(game);
+    const selectCard = cast(player.popWaitingFor(), SelectCard);
     expect(selectCard.cards).deep.eq([card]);
     selectCard.cb([selectCard.cards[0]]);
     expect(player.production.asUnits()).deep.eq(Units.of({megacredits: 3, heat: 1}));
@@ -143,7 +148,7 @@ describe('SpecializedSettlement', function() {
     hazardSpace.tile = {tileType: TileType.DUST_STORM_MILD, protectedHazard: false};
 
     const selectSpace = cast(card.play(player), SelectSpace);
-    expect(selectSpace.availableSpaces).contains(hazardSpace);
+    expect(selectSpace.spaces).contains(hazardSpace);
     selectSpace.cb(hazardSpace);
 
     expect(hazardSpace.tile?.tileType).eq(TileType.CITY);
@@ -154,14 +159,14 @@ describe('SpecializedSettlement', function() {
     expect(player.production.asUnits()).deep.eq(Units.of({megacredits: 3}));
   });
 
-  function singleResourceTest(spaceBonus: SpaceBonus | Array<SpaceBonus>, stock: Partial<Units>, production: Partial<Units>) {
+  function singleResourceTest(spaceBonus: OneOrArray<SpaceBonus>, stock: Partial<Units>, production: Partial<Units>) {
     player.production.override({energy: 1});
     const action = card.play(player);
 
     expect(player.production.asUnits()).deep.eq(Units.of({energy: 0, megacredits: 3}));
 
     const selectSpace = cast(action, SelectSpace);
-    const space = selectSpace.availableSpaces[0];
+    const space = selectSpace.spaces[0];
     space.bonus = spaceBonus instanceof Array ? spaceBonus : [spaceBonus];
     selectSpace.cb(space);
 

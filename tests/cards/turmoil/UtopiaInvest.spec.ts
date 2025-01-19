@@ -7,13 +7,15 @@ import {testGame} from '../../TestGame';
 describe('UtopiaInvest', function() {
   it('Should play', function() {
     const card = new UtopiaInvest();
-    const [, player] = testGame(2, {turmoilExtension: true});
-    const play = card.play(player);
-    expect(play).is.undefined;
+    const [/* game */, player] = testGame(2, {turmoilExtension: true});
+    cast(card.play(player), undefined);
+
     expect(player.production.titanium).to.eq(1);
     expect(player.production.steel).to.eq(1);
+
     const action = cast(card.action(player), OrOptions);
     action.options[2].cb();
+
     expect(player.titanium).to.eq(4);
     expect(player.production.titanium).to.eq(0);
   });

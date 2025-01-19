@@ -2,14 +2,14 @@ import {Resource} from '../../common/Resource';
 import {OrOptions} from '../inputs/OrOptions';
 import {SelectOption} from '../inputs/SelectOption';
 import {IPlayer} from '../IPlayer';
-import {DeferredAction, Priority} from './DeferredAction';
+import {DeferredAction} from './DeferredAction';
+import {Priority} from './Priority';
 
-export class SelectResourceTypeDeferred extends DeferredAction {
+export class SelectResourceTypeDeferred extends DeferredAction<Resource> {
   constructor(
     player: IPlayer,
-    public resources: Array<Resource>,
+    public resources: ReadonlyArray<Resource>,
     public title: string,
-    public cb: (resource: Resource) => void,
   ) {
     super(player, Priority.DEFAULT);
   }
@@ -18,7 +18,7 @@ export class SelectResourceTypeDeferred extends DeferredAction {
     const orOptions = new OrOptions();
     orOptions.title = this.title;
     orOptions.options = this.resources.map((resource) => {
-      return new SelectOption(resource, 'OK', () => {
+      return new SelectOption(resource, 'OK').andThen(() => {
         this.cb(resource);
         return undefined;
       });

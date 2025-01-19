@@ -6,7 +6,7 @@ export class Tactician extends BaseMilestone {
   constructor() {
     super(
       'Tactician',
-      'Have 5 cards with requirements',
+      'Have 5 cards with requirements in play',
       5);
   }
   private excludedCardTypes = [CardType.PRELUDE, CardType.EVENT];
@@ -14,7 +14,7 @@ export class Tactician extends BaseMilestone {
   public getScore(player: IPlayer): number {
     const validCards = player.playedCards.filter((card) => {
       const isValidCardType = !this.excludedCardTypes.includes(card.type);
-      const hasRequirements = card.requirements !== undefined;
+      const hasRequirements = card.requirements.length > 0;
 
       return isValidCardType && hasRequirements;
     });

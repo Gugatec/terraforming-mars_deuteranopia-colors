@@ -5,8 +5,8 @@ import {IPlayer} from '../../IPlayer';
 export class Collector extends BaseMilestone {
   constructor() {
     super(
-      'Collector',
-      'Have 3 sets of automated, active and event cards',
+      'T. Collector',
+      'Have 3 sets of automated (green), active (blue) and event (red) project cards in play',
       3);
   }
 

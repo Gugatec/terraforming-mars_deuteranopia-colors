@@ -2,7 +2,7 @@ import {expect} from 'chai';
 import {DirectedImpactors} from '../../../src/server/cards/promo/DirectedImpactors';
 import {RotatorImpacts} from '../../../src/server/cards/venusNext/RotatorImpacts';
 import {MAX_TEMPERATURE} from '../../../src/common/constants';
-import {Game} from '../../../src/server/Game';
+import {IGame} from '../../../src/server/IGame';
 import {Payment} from '../../../src/common/inputs/Payment';
 import {OrOptions} from '../../../src/server/inputs/OrOptions';
 import {SelectPayment} from '../../../src/server/inputs/SelectPayment';
@@ -14,7 +14,7 @@ import {testGame} from '../../TestGame';
 describe('DirectedImpactors', function() {
   let card: DirectedImpactors;
   let player: TestPlayer;
-  let game: Game;
+  let game: IGame;
 
   beforeEach(function() {
     card = new DirectedImpactors();
@@ -22,7 +22,7 @@ describe('DirectedImpactors', function() {
   });
 
   it('Should play', function() {
-    expect(card.play(player)).is.undefined;
+    cast(card.play(player), undefined);
   });
 
   it('Should act - single action choice, single target', function() {

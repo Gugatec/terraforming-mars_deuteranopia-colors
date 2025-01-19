@@ -1,28 +1,35 @@
-import {Game} from '../../../src/server/Game';
-import {IMoonData} from '../../../src/server/moon/IMoonData';
+import {expect} from 'chai';
+import {IGame} from '../../../src/server/IGame';
+import {testGame} from '../../TestGame';
+import {MoonData} from '../../../src/server/moon/MoonData';
 import {MoonExpansion} from '../../../src/server/moon/MoonExpansion';
 import {runAllActions} from '../../TestingUtils';
 import {TestPlayer} from '../../TestPlayer';
 import {MareImbriumMine} from '../../../src/server/cards/moon/MareImbriumMine';
-import {expect} from 'chai';
 import {MoonSpaces} from '../../../src/common/moon/MoonSpaces';
 import {TileType} from '../../../src/common/TileType';
 
 describe('MareImbriumMine', () => {
-  let game: Game;
+  let game: IGame;
   let player: TestPlayer;
-  let moonData: IMoonData;
+  let moonData: MoonData;
   let card: MareImbriumMine;
 
   beforeEach(() => {
-    player = TestPlayer.BLUE.newPlayer();
-    game = Game.newInstance('gameid', [player], player, {moonExpansion: true});
+    [game, player] = testGame(1, {moonExpansion: true});
     moonData = MoonExpansion.moonData(game);
     card = new MareImbriumMine();
   });
 
   it('can play', () => {
-    // TODO(kberg): Ensuring resources is going to require changes coming later.
+    player.megaCredits = card.cost;
+    player.titanium = 0;
+
+    expect(player.canPlay(card)).is.false;
+
+    player.titanium = 1;
+
+    expect(player.canPlay(card)).is.true;
   });
 
   it('play', () => {
@@ -40,7 +47,7 @@ describe('MareImbriumMine', () => {
     expect(player.getTerraformRating()).eq(15);
     expect(moonData.miningRate).eq(1);
 
-    const mareImbrium = moonData.moon.getSpace(MoonSpaces.MARE_IMBRIUM);
+    const mareImbrium = moonData.moon.getSpaceOrThrow(MoonSpaces.MARE_IMBRIUM);
     expect(mareImbrium.player).eq(player);
     expect(mareImbrium.tile!.tileType).eq(TileType.MOON_MINE);
   });

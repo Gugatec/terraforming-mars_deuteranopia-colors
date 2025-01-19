@@ -1,6 +1,6 @@
 import {expect} from 'chai';
 import {WaterImportFromEuropa} from '../../../src/server/cards/base/WaterImportFromEuropa';
-import {Game} from '../../../src/server/Game';
+import {IGame} from '../../../src/server/IGame';
 import {SelectSpace} from '../../../src/server/inputs/SelectSpace';
 import {cast, maxOutOceans} from '../../TestingUtils';
 import {TestPlayer} from '../../TestPlayer';
@@ -9,7 +9,7 @@ import {testGame} from '../../TestGame';
 describe('WaterImportFromEuropa', function() {
   let card: WaterImportFromEuropa;
   let player: TestPlayer;
-  let game: Game;
+  let game: IGame;
 
   beforeEach(function() {
     card = new WaterImportFromEuropa();
@@ -37,7 +37,7 @@ describe('WaterImportFromEuropa', function() {
 
     expect(game.deferredActions).has.lengthOf(1);
     const selectOcean = cast(game.deferredActions.peek()!.execute(), SelectSpace);
-    selectOcean.cb(selectOcean.availableSpaces[0]);
+    selectOcean.cb(selectOcean.spaces[0]);
     expect(player.getTerraformRating()).to.eq(21);
   });
 

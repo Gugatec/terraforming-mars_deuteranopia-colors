@@ -1,10 +1,17 @@
-import {ICardRequirement} from '../../../common/cards/ICardRequirement';
 import {IPlayer} from '../../IPlayer';
 import {InequalityRequirement} from './InequalityRequirement';
 import {GlobalParameter} from '../../../common/GlobalParameter';
 import {YesAnd} from './CardRequirement';
 
-export abstract class GlobalParameterRequirement extends InequalityRequirement implements ICardRequirement {
+
+/**
+ * Defines the class of requirements that compare against global parameters. Subclasses define
+ * important attributes of how each global paramter functions (e.g. `OxygenRequirement`.)
+ *
+ * For the most part, this is not much different than `InequalityRequirement` but the
+ * Pathfinders card Think Tank adds most of the complexity.
+ */
+export abstract class GlobalParameterRequirement extends InequalityRequirement {
   protected scale: number = 1;
   protected abstract parameter: GlobalParameter;
 
@@ -17,18 +24,18 @@ export abstract class GlobalParameterRequirement extends InequalityRequirement i
     if (thinkTankResources) {
       const distance = this.distance(player);
       if (distance <= thinkTankResources) {
-        return {ok: true, thinkTankResources: distance};
+        return {thinkTankResources: distance};
       }
     }
     return false;
   }
 
   public getScore(player: IPlayer): number {
-    const playerRequirementsBonus = player.getRequirementsBonus(this.parameter) * this.scale;
+    const playerRequirementsBonus = player.getGlobalParameterRequirementBonus(this.parameter) * this.scale;
 
     const level = this.getGlobalValue(player);
 
-    if (this.isMax) {
+    if (this.max) {
       return level - playerRequirementsBonus;
     } else {
       return level + playerRequirementsBonus;
@@ -36,6 +43,6 @@ export abstract class GlobalParameterRequirement extends InequalityRequirement i
   }
 
   public distance(player: IPlayer): number {
-    return Math.floor(Math.abs(this.getScore(player) - this.amount) / this.scale);
+    return Math.floor(Math.abs(this.getScore(player) - this.count) / this.scale);
   }
 }

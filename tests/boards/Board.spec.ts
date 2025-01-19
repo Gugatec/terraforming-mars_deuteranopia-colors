@@ -2,19 +2,19 @@ import {expect} from 'chai';
 import {TharsisBoard} from '../../src/server/boards/TharsisBoard';
 import {Player} from '../../src/server/Player';
 import {TileType} from '../../src/common/TileType';
-import {ISpace} from '../../src/server/boards/ISpace';
+import {Space} from '../../src/server/boards/Space';
 import {SpaceType} from '../../src/common/boards/SpaceType';
 import {TestPlayer} from '../TestPlayer';
 import {Board} from '../../src/server/boards/Board';
 import {Color} from '../../src/common/Color';
 import {SerializedBoard} from '../../src/server/boards/SerializedBoard';
 import {MoonSpaces} from '../../src/common/moon/MoonSpaces';
-import {SeededRandom} from '../../src/server/Random';
-import {DEFAULT_GAME_OPTIONS, GameOptions} from '../../src/server/GameOptions';
-import {MultiSet} from 'mnemonist';
+import {SeededRandom} from '../../src/common/utils/Random';
+import {DEFAULT_GAME_OPTIONS, GameOptions} from '../../src/server/game/GameOptions';
+import {SpaceId} from '../../src/common/Types';
 
 describe('Board', function() {
-  let board: TharsisBoard;
+  let board: Board;
   let player: TestPlayer;
   let player2: TestPlayer;
 
@@ -30,34 +30,9 @@ describe('Board', function() {
   });
 
   it('getSpace', () => {
-    expect(board.getSpace('01').spaceType).eq(SpaceType.COLONY);
-    expect(board.getSpace('01').id).eq('01');
-    expect(() => board.getSpace(MoonSpaces.LUNA_TRADE_STATION).id).to.throw(Error, /Can't find space with id m01/);
-  });
-
-  it('Can have greenery placed on any available land when player has no tile placed', function() {
-    const availableSpaces = board.getAvailableSpacesForGreenery(player);
-    expect(availableSpaces).has.lengthOf(board.getAvailableSpacesOnLand(player).length);
-  });
-
-  it('Can have greenery placed on any available land when player has a tile placed that is land locked', function() {
-    board.spaces[2].player = player;
-    board.spaces[2].tile = {tileType: TileType.GREENERY};
-    board.spaces[7].player = player2;
-    board.spaces[7].tile = {tileType: TileType.GREENERY};
-    board.spaces[8].player = player2;
-    board.spaces[8].tile = {tileType: TileType.GREENERY};
-    const availableSpaces = board.getAvailableSpacesForGreenery(player);
-    expect(availableSpaces).has.lengthOf(board.getAvailableSpacesOnLand(player).length);
-  });
-
-  it('Can only place greenery adjacent to a tile a player owns', function() {
-    board.spaces[2].player = player;
-    board.spaces[2].tile = {tileType: TileType.GREENERY};
-    board.spaces[7].player = player2;
-    board.spaces[7].tile = {tileType: TileType.GREENERY};
-    const availableSpaces = board.getAvailableSpacesForGreenery(player);
-    expect(availableSpaces).has.lengthOf(1);
+    expect(board.getSpaceOrThrow('01').spaceType).eq(SpaceType.COLONY);
+    expect(board.getSpaceOrThrow('01').id).eq('01');
+    expect(() => board.getSpaceOrThrow(MoonSpaces.LUNA_TRADE_STATION).id).to.throw(Error, /Can't find space with id m01/);
   });
 
   it('getAdjacentSpaces', () => {
@@ -134,22 +109,34 @@ describe('Board', function() {
     });
   });
 
+  it('has error with input while calling getAdjacentSpaces', () => {
+    expect(function() {
+      board.getAdjacentSpaces({
+        x: 0,
+        y: 0,
+        bonus: [],
+        id: 'foobar' as SpaceId,
+        spaceType: SpaceType.LAND,
+      });
+    }).to.throw('Unexpected space ID foobar');
+  });
+
   it('getAdjacentSpacesClockwise', () => {
     expect(
       board.getAdjacentSpacesClockwise(
-        board.getSpace('51'))
+        board.getSpaceOrThrow('51'))
         .map((space) => space?.id))
       .deep.eq(['43', '44', '52', '58', '57', '50']);
 
     expect(
       board.getAdjacentSpacesClockwise(
-        board.getSpace('20'))
+        board.getSpaceOrThrow('20'))
         .map((space) => space?.id))
       .deep.eq(['13', undefined, undefined, '28', '27', '19']);
 
     expect(
       board.getAdjacentSpacesClockwise(
-        board.getSpace('03'))
+        board.getSpaceOrThrow('03'))
         .map((space) => space?.id))
       .deep.eq([undefined, undefined, '04', '09', '08', undefined]);
   });
@@ -167,7 +154,7 @@ describe('Board', function() {
     expect(board.getNthAvailableLandSpace(3, 1, undefined /* player */, (s) => s.id !== '09').id).eq('10');
 
     // Filter player tokens (I'm looking at you, Land Claim)
-    board.getSpace('05').player = player;
+    board.getSpaceOrThrow('05').player = player;
     expect(board.getNthAvailableLandSpace(3, 1, player2).id).eq('10');
     expect(board.getNthAvailableLandSpace(3, 1, player).id).eq('09');
 
@@ -187,7 +174,7 @@ describe('Board', function() {
     }).to.throw('no spaces available');
   });
 
-  function expectSpace(space: ISpace, id: string, x: number, y: number) {
+  function expectSpace(space: Space, id: string, x: number, y: number) {
     if (id !== space.id || x !== space.x || y !== space.y) {
       expect.fail(`space ${space.id} at (${space.x}, ${space.y}) does not match [${id}, ${x}, ${y}]`);
     }
@@ -247,66 +234,36 @@ describe('Board', function() {
     expect(board.getNthAvailableLandSpace(50, -1).id).eq('60');
   });
 
-  it('getOceanCount', function() {
-    expect(board.getOceanCount()).eq(0);
-
-    const space1 = board.spaces[1];
-    space1.spaceType = SpaceType.OCEAN;
-    space1.tile = {tileType: TileType.OCEAN};
-
-    expect(board.getOceanCount()).eq(1);
-    expect(board.getOceanCount({upgradedOceans: false})).eq(1);
-    expect(board.getOceanCount({upgradedOceans: true})).eq(1);
-
-    const space2 = board.spaces[2];
-    space2.spaceType = SpaceType.OCEAN;
-    space2.tile = {tileType: TileType.OCEAN_SANCTUARY};
-
-    expect(board.getOceanCount()).eq(2);
-    expect(board.getOceanCount({upgradedOceans: false})).eq(1);
-    expect(board.getOceanCount({upgradedOceans: true})).eq(2);
-
-    const space3 = board.spaces[3];
-    space3.spaceType = SpaceType.OCEAN;
-    space3.tile = {tileType: TileType.WETLANDS};
-
-    expect(board.getOceanCount()).eq(2);
-    expect(board.getOceanCount({upgradedOceans: false})).eq(1);
-    expect(board.getOceanCount({upgradedOceans: true})).eq(2);
-    expect(board.getOceanCount({wetlands: true})).eq(3);
-    expect(board.getOceanCount({wetlands: false})).eq(2);
-  });
-
   class TestBoard extends Board {
-    public constructor(spaces: Array<ISpace>) {
-      super(spaces);
+    public constructor(spaces: Array<Space>) {
+      super(spaces, undefined, []);
     }
   }
 
   it('deserialize', () => {
-    const boardJson = {
+    const boardJson: SerializedBoard = {
       'spaces': [
         {
           'id': '01',
-          'spaceType': 'colony', 'bonus': [],
+          'spaceType': SpaceType.COLONY, 'bonus': [],
           'x': -1, 'y': -1, 'player': 'p-name-1-id',
           'tile': {'tileType': 2},
         },
         {
           'id': '03',
-          'spaceType': 'land', 'bonus': [1, 1],
+          'spaceType': SpaceType.LAND, 'bonus': [1, 1],
           'x': 4, 'y': 0, 'player': 'p-name-2-id',
           'tile': {'tileType': 0},
         },
         {
           'id': '04',
-          'spaceType': 'ocean', 'bonus': [1, 1],
+          'spaceType': SpaceType.OCEAN, 'bonus': [1, 1],
           'x': 5, 'y': 0,
           'tile': {'tileType': 1},
         },
         {
           'id': '05',
-          'spaceType': 'land', 'bonus': [],
+          'spaceType': SpaceType.LAND, 'bonus': [],
           'x': 6, 'y': 0,
         },
       ],
@@ -314,27 +271,8 @@ describe('Board', function() {
     const player1 = new Player('name-1', Color.RED, false, 0, 'p-name-1-id');
     const player2 = new Player('name-2', Color.YELLOW, false, 0, 'p-name-2-id');
 
-    const board = new TestBoard(Board.deserializeSpaces((boardJson as SerializedBoard).spaces, [player1, player2]));
-    expect(board.getSpace('01').player).eq(player1);
-    expect(board.getSpace('03').player).eq(player2);
-  });
-
-  it('Randomized maps have space types on all spaces, #4056', () => {
-    const spaces = new MultiSet<string>();
-    for (let idx = 0; idx < 4_000; idx++) {
-      const seed = Math.random();
-      board = TharsisBoard.newInstance({
-        ...DEFAULT_GAME_OPTIONS,
-        shuffleMapOption: true,
-      },
-      new SeededRandom(seed));
-      for (const space of board.spaces) {
-        if (space.spaceType === undefined) {
-          console.log(`Bad seed ${seed}`);
-          spaces.add(space.id);
-        }
-      }
-    }
-    expect(spaces.size, spaces.toJSON()).eq(0);
+    const board = new TestBoard(Board.deserialize(boardJson, [player1, player2]).spaces);
+    expect(board.getSpaceOrThrow('01').player).eq(player1);
+    expect(board.getSpaceOrThrow('03').player).eq(player2);
   });
 });

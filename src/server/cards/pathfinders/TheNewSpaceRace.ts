@@ -3,10 +3,10 @@ import {CardRenderer} from '../render/CardRenderer';
 import {IProjectCard} from '../IProjectCard';
 import {IPlayer} from '../../IPlayer';
 import {PreludeCard} from '../prelude/PreludeCard';
-import {Resource} from '../../../common/Resource';
 import {Tag} from '../../../common/cards/Tag';
 import {IGame} from '../../IGame';
 import {Turmoil} from '../../turmoil/Turmoil';
+import {ChooseRulingPartyDeferred} from '../../turmoil/ChooseRulingPartyDeferred';
 
 export class TheNewSpaceRace extends PreludeCard implements IProjectCard {
   constructor() {
@@ -14,8 +14,12 @@ export class TheNewSpaceRace extends PreludeCard implements IProjectCard {
       name: CardName.THE_NEW_SPACE_RACE,
       tags: [Tag.SCIENCE, Tag.EARTH],
 
+      behavior: {
+        stock: {megacredits: 12},
+      },
+
       metadata: {
-        cardNumber: '',
+        cardNumber: 'PfP14',
         renderData: CardRenderer.builder((b) => {
           b.firstPlayer().rulingParty().megacredits(12).br;
         }),
@@ -25,10 +29,9 @@ export class TheNewSpaceRace extends PreludeCard implements IProjectCard {
   }
   public override bespokePlay(player: IPlayer) {
     const game = player.game;
-    player.stock.add(Resource.MEGACREDITS, 12);
     game.overrideFirstPlayer(player);
     Turmoil.ifTurmoil((player.game), (turmoil) => {
-      turmoil.chooseRulingParty(player);
+      player.game.defer(new ChooseRulingPartyDeferred(player, turmoil));
     });
 
     return undefined;

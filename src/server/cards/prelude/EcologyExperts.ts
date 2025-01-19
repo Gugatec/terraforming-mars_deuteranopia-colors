@@ -21,11 +21,11 @@ export class EcologyExperts extends PreludeCard {
           b.production((pb) => pb.plants(1)).br.br;
           b.projectRequirements();
         }),
-        description: 'Increase your plant production 1 step. Play a card from hand, ignoring global requirements.',
+        description: 'Increase your plant production 1 step. PLAY A CARD FROM HAND, IGNORING GLOBAL REQUIREMENTS.',
       },
     });
   }
-  public getRequirementBonus(player: IPlayer): number {
+  public override getGlobalParameterRequirementBonus(player: IPlayer): number {
     if (player.lastCardPlayed === this.name) {
       // Magic number high enough to always ignore requirements.
       return 50;

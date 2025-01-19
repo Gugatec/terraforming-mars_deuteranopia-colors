@@ -1,4 +1,3 @@
-import * as constants from '../../common/constants';
 import {Phase} from '../../common/Phase';
 import {IPlayer} from '../IPlayer';
 import {Board} from '../boards/Board';
@@ -13,9 +12,14 @@ export function calculateVictoryPoints(player: IPlayer) {
   const victoryPointsBreakdown = new VictoryPointsBreakdown();
 
   // Victory points from cards
+  let negativeVP = 0; // For Underworld.
   for (const playedCard of player.tableau) {
     if (playedCard.victoryPoints !== undefined) {
-      victoryPointsBreakdown.setVictoryPoints('victoryPoints', playedCard.getVictoryPoints(player), playedCard.name);
+      const vp = playedCard.getVictoryPoints(player);
+      victoryPointsBreakdown.setVictoryPoints('victoryPoints', vp, playedCard.name);
+      if (vp < 0) {
+        negativeVP += vp;
+      }
     }
   }
 
@@ -28,7 +32,7 @@ export function calculateVictoryPoints(player: IPlayer) {
   // Victory points from milestones
   for (const milestone of player.game.claimedMilestones) {
     if (milestone.player !== undefined && milestone.player.id === player.id) {
-      victoryPointsBreakdown.setVictoryPoints('milestones', 5, 'Claimed '+milestone.milestone.name+' milestone');
+      victoryPointsBreakdown.setVictoryPoints('milestones', 5, 'Claimed ${0} milestone', [milestone.milestone.name]);
     }
   }
 
@@ -59,18 +63,28 @@ export function calculateVictoryPoints(player: IPlayer) {
     }
   });
 
-  player.colonies.calculateVictoryPoints(victoryPointsBreakdown);
+  const coloniesVP = player.colonies.getVictoryPoints();
+  if (coloniesVP > 0) {
+    victoryPointsBreakdown.setVictoryPoints('victoryPoints', coloniesVP, 'Colony VP');
+  }
   MoonExpansion.calculateVictoryPoints(player, victoryPointsBreakdown);
   PathfindersExpansion.calculateVictoryPoints(player, victoryPointsBreakdown);
+
+  // Underworld Score Bribing
+  if (player.game.gameOptions.underworldExpansion === true) {
+    const bribe = Math.min(Math.abs(negativeVP), player.underworldData.corruption);
+    victoryPointsBreakdown.setVictoryPoints('victoryPoints', bribe, 'Underworld Corruption Bribe');
+  }
 
   // Escape velocity VP penalty
   if (player.game.gameOptions.escapeVelocityMode) {
     const threshold = player.game.gameOptions.escapeVelocityThreshold;
+    const bonusSecondsPerAction = player.game.gameOptions.escapeVelocityBonusSeconds;
     const period = player.game.gameOptions.escapeVelocityPeriod;
     const penaltyPerMin = player.game.gameOptions.escapeVelocityPenalty ?? 1;
     const elapsedTimeInMinutes = player.timer.getElapsedTimeInMinutes();
-    if (threshold !== undefined && period !== undefined && elapsedTimeInMinutes > threshold) {
-      const overTimeInMinutes = Math.max(elapsedTimeInMinutes - threshold - (player.actionsTakenThisGame * (constants.BONUS_SECONDS_PER_ACTION / 60)), 0);
+    if (threshold !== undefined && bonusSecondsPerAction !== undefined && period !== undefined && elapsedTimeInMinutes > threshold) {
+      const overTimeInMinutes = Math.max(elapsedTimeInMinutes - threshold - (player.actionsTakenThisGame * (bonusSecondsPerAction / 60)), 0);
       // Don't lose more VP than what is available
       victoryPointsBreakdown.updateTotal();
 
@@ -89,7 +103,9 @@ function maybeSetVP(thisPlayer: IPlayer, awardWinner: IPlayer, fundedAward: Fund
     vpb.setVictoryPoints(
       'awards',
       vps,
-      `${place} place for ${fundedAward.award.name} award (funded by ${fundedAward.player.name})`);
+      '${0} place for ${1} award (funded by ${2})',
+      [place, fundedAward.award.name, fundedAward.player.name],
+    );
   }
 }
 

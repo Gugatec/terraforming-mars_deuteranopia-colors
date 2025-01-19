@@ -1,11 +1,10 @@
 import {CardName} from '../../../common/cards/CardName';
-import {CardType} from '../../../common/cards/CardType';
 import {Tag} from '../../../common/cards/Tag';
-import {ICorporationCard} from '../corporation/ICorporationCard';
+import {CorporationCard} from '../corporation/CorporationCard';
 import {CardRenderer} from '../render/CardRenderer';
 import {CardResource} from '../../../common/CardResource';
 import {IPlayer} from '../../IPlayer';
-import {ISpace} from '../../boards/ISpace';
+import {Space} from '../../boards/Space';
 import {MoonExpansion} from '../../moon/MoonExpansion';
 import {MultiSet} from 'mnemonist';
 import {Resource} from '../../../common/Resource';
@@ -13,14 +12,13 @@ import {OrOptions} from '../../inputs/OrOptions';
 import {SelectOption} from '../../inputs/SelectOption';
 import {Size} from '../../../common/cards/render/Size';
 import {Phase} from '../../../common/Phase';
-import {Card} from '../Card';
 import {all} from '../Options';
 import {Payment} from '../../../common/inputs/Payment';
+import {LogHelper} from '../../LogHelper';
 
-export class TheDarksideofTheMoonSyndicate extends Card implements ICorporationCard {
+export class TheDarksideofTheMoonSyndicate extends CorporationCard {
   constructor() {
     super({
-      type: CardType.CORPORATION,
       name: CardName.THE_DARKSIDE_OF_THE_MOON_SYNDICATE,
       tags: [Tag.MOON],
       startingMegaCredits: 40,
@@ -31,13 +29,13 @@ export class TheDarksideofTheMoonSyndicate extends Card implements ICorporationC
       },
 
       metadata: {
-        cardNumber: '',
+        cardNumber: 'MC3',
         renderData: CardRenderer.builder((b) => {
-          b.megacredits(40).syndicateFleet(2).br;
+          b.megacredits(40).resource(CardResource.SYNDICATE_FLEET, 2).br;
           b.text('You start with 40 M€ and 2 syndicate fleets on this card.', Size.SMALL, false, false).br;
-          b.titanium(1).arrow(Size.SMALL).syndicateFleet()
+          b.titanium(1).arrow(Size.SMALL).resource(CardResource.SYNDICATE_FLEET)
             .slash(Size.SMALL)
-            .syndicateFleet().arrow(Size.SMALL).text('steal', Size.TINY).megacredits(2, {all}).asterix().br;
+            .resource(CardResource.SYNDICATE_FLEET).arrow(Size.SMALL).text('steal', Size.TINY).megacredits(2, {all}).asterix().br;
           b.text('Action: Spend 1 titanium to add 1 syndicate fleet on this card OR ' +
                 'remove 1 syndicate fleet from this card to steal 2M€ from every opponent.', Size.TINY, false, false).br;
           b.effect('When you place a tile on The Moon, steal 2 M€ from opponents for each of their tiles next to yours.', (eb) => {
@@ -57,19 +55,22 @@ export class TheDarksideofTheMoonSyndicate extends Card implements ICorporationC
   public action(player: IPlayer) {
     const orOptions = new OrOptions();
     if (player.titanium > 0) {
-      orOptions.options.push(new SelectOption('Spend 1 titanium to add 1 syndicate fleet on this card', 'Add syndicate fleet', () => {
+      orOptions.options.push(new SelectOption('Spend 1 titanium to add 1 syndicate fleet on this card', 'Add syndicate fleet').andThen(() => {
         player.pay(Payment.of({titanium: 1}));
         player.addResourceTo(this, {qty: 1, log: true});
         return undefined;
       }));
     }
     if (this.resourceCount > 0) {
-      orOptions.options.push(new SelectOption('Remove 1 syndicate fleet from this card to steal 2M€ from every opponent.', 'Remove syndicate fleet', () => {
+      orOptions.options.push(new SelectOption('Remove 1 syndicate fleet from this card to steal 2M€ from every opponent.', 'Remove syndicate fleet').andThen(() => {
         player.removeResourceFrom(this);
-        const game = player.game;
-        for (const p of game.getPlayers()) {
-          if (p === player) continue;
-          p.stock.steal(Resource.MEGACREDITS, 2, player);
+        if (player.game.isSoloMode()) {
+          player.stock.add(Resource.MEGACREDITS, 2);
+          LogHelper.logStealFromNeutralPlayer(player, Resource.MEGACREDITS, 2);
+        } else {
+          for (const target of player.getOpponents()) {
+            target.attack(player, Resource.MEGACREDITS, 2, {stealing: true});
+          }
         }
         return undefined;
       }));
@@ -81,7 +82,7 @@ export class TheDarksideofTheMoonSyndicate extends Card implements ICorporationC
     return orOptions;
   }
 
-  public onTilePlaced(cardOwner: IPlayer, activePlayer: IPlayer, space: ISpace) {
+  public onTilePlaced(cardOwner: IPlayer, activePlayer: IPlayer, space: Space) {
     if (activePlayer.game.phase === Phase.SOLAR) {
       return;
     }

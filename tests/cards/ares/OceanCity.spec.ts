@@ -1,4 +1,4 @@
-import {Game} from '../../../src/server/Game';
+import {IGame} from '../../../src/server/IGame';
 import {OceanCity} from '../../../src/server/cards/ares/OceanCity';
 import {expect} from 'chai';
 import {Resource} from '../../../src/common/Resource';
@@ -14,7 +14,7 @@ import {testGame} from '../../TestGame';
 describe('OceanCity', function() {
   let card: OceanCity;
   let player: TestPlayer;
-  let game: Game;
+  let game: IGame;
 
   beforeEach(function() {
     card = new OceanCity();
@@ -48,19 +48,19 @@ describe('OceanCity', function() {
     const oceanSpace = addOcean(player);
     player.production.add(Resource.ENERGY, 1);
 
-    expect(card.play(player)).is.undefined;
+    cast(card.play(player), undefined);
     runAllActions(game);
     const action = cast(player.popWaitingFor(), SelectSpace);
 
     expect(player.production.energy).eq(0);
     expect(player.production.megacredits).eq(3);
-    expect(game.getCitiesOnMarsCount()).eq(0);
-    expect(player.game.getCitiesCount(player)).eq(0);
+    expect(game.board.getCitiesOnMars()).is.empty;
+    expect(player.game.board.getCities(player)).is.empty;
 
     action.cb(oceanSpace);
 
-    expect(game.getCitiesOnMarsCount()).eq(1);
-    expect(player.game.getCitiesCount(player)).eq(1);
+    expect(game.board.getCitiesOnMars()).has.length(1);
+    expect(player.game.board.getCities(player)).has.length(1);
 
     expect(oceanSpace.player).to.eq(player);
     expect(oceanSpace.tile!.tileType).to.eq(TileType.OCEAN_CITY);
@@ -70,7 +70,7 @@ describe('OceanCity', function() {
     const oceanSpace = addOcean(player);
     player.production.add(Resource.ENERGY, 1);
 
-    expect(card.play(player)).is.undefined;
+    cast(card.play(player), undefined);
     runAllActions(game);
     const action = cast(player.popWaitingFor(), SelectSpace);
 
@@ -95,7 +95,7 @@ describe('OceanCity', function() {
       .filter((space) => space.spaceType === SpaceType.LAND)[0];
     game.addCity(player, citySpace);
 
-    expect(card.play(player)).is.undefined;
+    cast(card.play(player), undefined);
     runAllActions(game);
     const action = cast(player.popWaitingFor(), SelectSpace);
 
@@ -104,11 +104,9 @@ describe('OceanCity', function() {
     expect(oceanSpace.tile!.tileType).to.eq(TileType.OCEAN_CITY);
   });
 
-  // TODO(kberg): Add a test where cards that get points for adjacent oceans get credit
-
   it('Ocean City counts as ocean for adjacency', function() {
     const oceanSpace = addOcean(player);
-    expect(card.play(player)).is.undefined;
+    cast(card.play(player), undefined);
     runAllActions(game);
     const action = cast(player.popWaitingFor(), SelectSpace);
     action.cb(oceanSpace);
@@ -125,7 +123,7 @@ describe('OceanCity', function() {
 
   it('Ocean City counts for city-related VP', function() {
     const oceanSpace = addOcean(player);
-    expect(card.play(player)).is.undefined;
+    cast(card.play(player), undefined);
     runAllActions(game);
     const action = cast(player.popWaitingFor(), SelectSpace);
     action.cb(oceanSpace);
@@ -179,7 +177,7 @@ describe('OceanCity', function() {
     game.addOcean(player, oceanSpace);
     expect(player.plants).eq(1);
 
-    expect(card.play(player)).is.undefined;
+    cast(card.play(player), undefined);
     runAllActions(game);
     const action = cast(player.popWaitingFor(), SelectSpace);
 

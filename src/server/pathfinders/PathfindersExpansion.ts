@@ -1,8 +1,7 @@
 import {AddResourcesToCard} from '../deferredActions/AddResourcesToCard';
 import {CardName} from '../../common/cards/CardName';
-import {CardType} from '../../common/cards/CardType';
 import {IGame} from '../IGame';
-import {GameOptions} from '../GameOptions';
+import {GameOptions} from '../game/GameOptions';
 import {GrantResourceDeferred} from './GrantResourceDeferred';
 import {ICard} from '../cards/ICard';
 import {PathfindersData, PlanetaryTag, isPlanetaryTag} from './PathfindersData';
@@ -16,12 +15,13 @@ import {IPlayer} from '../IPlayer';
 import {Resource} from '../../common/Resource';
 import {CardResource} from '../../common/CardResource';
 import {Reward} from '../../common/pathfinders/Reward';
-import {SelectResourcesDeferred} from '../deferredActions/SelectResourcesDeferred';
+import {GainResources} from '../inputs/GainResources';
 import {SendDelegateToArea} from '../deferredActions/SendDelegateToArea';
 import {Tag} from '../../common/cards/Tag';
 import {Turmoil} from '../turmoil/Turmoil';
 import {VictoryPointsBreakdown} from '../game/VictoryPointsBreakdown';
 import {GlobalEventName} from '../../common/turmoil/globalEvents/GlobalEventName';
+import {Priority} from '../deferredActions/Priority';
 
 export const TRACKS = PlanetaryTracks.initialize();
 
@@ -29,6 +29,7 @@ export class PathfindersExpansion {
   private constructor() {
   }
 
+  // TODO(kberg): Make VenusNext and Moon reference the tags in game.tags and not the expansions.
   public static initialize(gameOptions: GameOptions): PathfindersData {
     return {
       venus: gameOptions.venusNextExtension ? 0 : -1,
@@ -50,18 +51,6 @@ export class PathfindersExpansion {
         PathfindersExpansion.raiseTrack(tag, player);
       }
     });
-
-    // Communication Center hook
-    if (card.type === CardType.EVENT) {
-      for (const p of player.game.getPlayers()) {
-        for (const c of p.playedCards) {
-          if (c.name === CardName.COMMUNICATION_CENTER) {
-            p.addResourceTo(c, {qty: 1, log: true});
-            return;
-          }
-        }
-      }
-    }
   }
 
   public static raiseTrack(tag: PlanetaryTag, player: IPlayer, steps: number = 1): void {
@@ -118,22 +107,22 @@ export class PathfindersExpansion {
             PathfindersExpansion.grant(reward, from, tag);
           });
         }
-        rewards.everyone.forEach((reward) => {
-          game.getPlayers().forEach((p) => {
+      }
+      rewards.everyone.forEach((reward) => {
+        game.getPlayers().forEach((p) => {
+          PathfindersExpansion.grant(reward, p, tag);
+        });
+      });
+      if (rewards.mostTags.length > 0) {
+        const players = PathfindersExpansion.playersWithMostTags(
+          tag,
+          game.getPlayers().slice(),
+          (typeof(from) === 'object') ? from : undefined);
+        rewards.mostTags.forEach((reward) => {
+          players.forEach((p) => {
             PathfindersExpansion.grant(reward, p, tag);
           });
         });
-        if (rewards.mostTags.length > 0) {
-          const players = PathfindersExpansion.playersWithMostTags(
-            tag,
-            game.getPlayers().slice(),
-            (typeof(from) === 'object') ? from : undefined);
-          rewards.mostTags.forEach((reward) => {
-            players.forEach((p) => {
-              PathfindersExpansion.grant(reward, p, tag);
-            });
-          });
-        }
       }
       // game.indentation--;
     }
@@ -176,7 +165,7 @@ export class PathfindersExpansion {
     case 'delegate':
       Turmoil.ifTurmoilElse(game,
         (turmoil) => {
-          if (turmoil.hasDelegatesInReserve(player.id)) {
+          if (turmoil.hasDelegatesInReserve(player)) {
             game.defer(new SendDelegateToArea(player));
           }
         },
@@ -216,7 +205,7 @@ export class PathfindersExpansion {
       player.production.add(Resource.PLANTS, 1, {log: true});
       break;
     case 'resource':
-      game.defer(new SelectResourcesDeferred(player, 1, 'Gain 1 resource for your Planetary track bonus.'));
+      player.defer(new GainResources(player, 1, 'Gain 1 resource for your Planetary track bonus.'));
       break;
     case 'steel':
       player.stock.add(Resource.STEEL, 1, {log: true});
@@ -266,5 +255,14 @@ export class PathfindersExpansion {
     data.vps
       .filter((vp) => vp.id === player.id)
       .forEach((vp) => victoryPointsBreakdown.setVictoryPoints('planetary tracks', vp.points, vp.tag));
+  }
+
+  public static addToSolBank(player: IPlayer) {
+    const solBank = player.getCorporation(CardName.SOLBANK);
+    if (solBank !== undefined) {
+      player.defer(
+        () => player.addResourceTo(solBank, {qty: 1, log: true}),
+        Priority.GAIN_RESOURCE_OR_PRODUCTION);
+    }
   }
 }

@@ -32,7 +32,7 @@ export class MareSerenitatisMine extends Card {
         renderData: CardRenderer.builder((b) => {
           b.minus().titanium(2).minus().steel(1).br;
           b.production((pb) => pb.steel(1).titanium(1)).br;
-          b.moonMine({secondaryTag: AltSecondaryTag.MOON_MINING_RATE}).asterix().nbsp.moonRoad({secondaryTag: AltSecondaryTag.MOON_MINING_RATE}).asterix();
+          b.moonMine({secondaryTag: AltSecondaryTag.MOON_MINING_RATE}).asterix().nbsp.moonRoad({secondaryTag: AltSecondaryTag.MOON_LOGISTICS_RATE}).asterix();
         }),
       },
       tilesBuilt: [TileType.MOON_MINE, TileType.MOON_ROAD],
@@ -43,7 +43,7 @@ export class MareSerenitatisMine extends Card {
     MoonExpansion.addMineTile(player, MoonSpaces.MARE_SERENITATIS, this.name);
     MoonExpansion.raiseMiningRate(player);
     const moon = MoonExpansion.moonData(player.game).moon;
-    const spaces = moon.getAdjacentSpaces(moon.getSpace(MoonSpaces.MARE_SERENITATIS));
+    const spaces = moon.getAdjacentSpaces(moon.getSpaceOrThrow(MoonSpaces.MARE_SERENITATIS));
     const availableRoadSpaces = spaces.filter((space) => {
       return space.player === undefined && space.spaceType === SpaceType.LAND;
     });

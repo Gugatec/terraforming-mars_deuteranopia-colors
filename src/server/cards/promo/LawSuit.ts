@@ -40,13 +40,22 @@ export class LawSuit extends Card implements IProjectCard {
   }
 
   public override bespokePlay(player: IPlayer) {
-    return new SelectPlayer(this.targets(player), 'Select player to sue (steal 3 M€ from)', 'Steal M€', (suedPlayer: IPlayer) => {
-      const amount = Math.min(3, suedPlayer.megaCredits);
-      player.stock.add(Resource.MEGACREDITS, amount);
-      suedPlayer.stock.deduct(Resource.MEGACREDITS, amount, {log: true, from: player, stealing: true});
-      suedPlayer.playedCards.push(this);
-      return undefined;
-    });
+    return new SelectPlayer(this.targets(player), 'Select player to sue (steal 3 M€ from)', 'Steal M€')
+      .andThen((suedPlayer: IPlayer) => {
+        const amount = Math.min(3, suedPlayer.megaCredits);
+        if (amount === 0) {
+          player.game.log('${0} sued ${1} who had 0 MC.', (b) => b.player(player).player(suedPlayer));
+        }
+        suedPlayer.playedCards.push(this);
+        suedPlayer.maybeBlockAttack(player, 'lose 3 M€', (proceed) => {
+          if (proceed) {
+            suedPlayer.stock.deduct(Resource.MEGACREDITS, amount, {log: true, from: player, stealing: true});
+          }
+          player.stock.add(Resource.MEGACREDITS, amount);
+          return undefined;
+        });
+        return undefined;
+      });
   }
   public override getVictoryPoints() {
     return -1;

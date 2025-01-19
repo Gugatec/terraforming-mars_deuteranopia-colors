@@ -4,7 +4,6 @@ import {CardName} from '../../../common/cards/CardName';
 import {CardRenderer} from '../render/CardRenderer';
 import {SelectCard} from '../../inputs/SelectCard';
 import {Size} from '../../../common/cards/render/Size';
-import {SimpleDeferredAction} from '../../deferredActions/DeferredAction';
 import {SelectPaymentDeferred} from '../../deferredActions/SelectPaymentDeferred';
 import {LogHelper} from '../../LogHelper';
 import {ICorporationCard} from '../corporation/ICorporationCard';
@@ -34,7 +33,6 @@ export class Merger extends PreludeCard {
   public override bespokePlay(player: IPlayer) {
     const game = player.game;
     const dealtCorps = Merger.dealCorporations(player, game.corporationDeck);
-    LogHelper.logDrawnCards(player, dealtCorps, true);
     const enabled = dealtCorps.map((corp) => {
       return player.canAfford(Merger.mergerCost - this.spendableMegacredits(player, corp));
     });
@@ -43,35 +41,35 @@ export class Merger extends PreludeCard {
       dealtCorps.forEach((corp) => game.corporationDeck.discard(corp));
       return undefined;
     }
-    game.defer(new SimpleDeferredAction(player, () => {
-      return new SelectCard('Choose corporation card to play', 'Play', dealtCorps, ([card]) => {
-        player.playAdditionalCorporationCard(card);
-        dealtCorps.forEach((corp) => {
-          if (corp.name !== card.name) {
-            game.corporationDeck.discard(corp);
-          }
+    player.defer(() => {
+      return new SelectCard('Choose corporation card to play', 'Play', dealtCorps, {enabled: enabled})
+        .andThen(([card]) => {
+          // Allow merged corps to add resources to themselves.
+          player.game.inDoubleDown = false;
+          player.playAdditionalCorporationCard(card);
+          dealtCorps.forEach((corp) => {
+            if (corp.name !== card.name) {
+              game.corporationDeck.discard(corp);
+            }
+          });
+          game.defer(new SelectPaymentDeferred(player, Merger.mergerCost, {title: 'Select how to pay for Merger'}));
+          return undefined;
         });
-        game.defer(new SelectPaymentDeferred(player, Merger.mergerCost, {title: 'Select how to pay for Merger'}));
-        return undefined;
-      },
-      {enabled: enabled});
-    }));
+    });
     return undefined;
   }
 
   private static dealCorporations(player: IPlayer, corporationDeck: CorporationDeck) {
-    const cards: Array<ICorporationCard> = [];
-    try {
-      while (cards.length < 4) {
-        cards.push(corporationDeck.draw(player.game));
-      }
-    } catch (err) {
+    const game = player.game;
+    const cards = corporationDeck.drawN(game, 4);
+    if (cards.length !== 4) {
       // Error will only occur if the deck is empty. That won't happen, but here we'll just do our best.
-      player.game.log('Not enough corporations while resolving ${0}', (b) => b.cardName(CardName.MERGER));
+      game.log('Not enough corporations while resolving ${0}', (b) => b.cardName(CardName.MERGER));
     }
     LogHelper.logDrawnCards(player, cards, /* privateMessage= */true);
     return cards;
   }
+
   public static setCardCost(player: IPlayer) {
     return player.corporations
       .map((card) => (card.cardCost ?? CARD_COST) - CARD_COST) // Convert every card cost to delta from zero. (e.g. -2, 0, +2)
@@ -111,7 +109,7 @@ export class Merger extends PreludeCard {
       sum += asNumber(production?.megacredits);
       incomingTitanium += asNumber(production?.titanium);
     }
-    if (corp.name === CardName.LUNA_TRADE_FEDERATION || player.isCorporation(CardName.LUNA_TRADE_FEDERATION)) {
+    if (corp.name === CardName.LUNA_TRADE_FEDERATION || player.canUseTitaniumAsMegacredits) {
       sum += (player.titanium + incomingTitanium) * (titaniumValue - 1);
     }
 

@@ -1,10 +1,8 @@
 import {expect} from 'chai';
-import {Player} from '../src/server/Player';
 import {IGame} from '../src/server/IGame';
 import * as constants from '../src/common/constants';
-import {ISpace} from '../src/server/boards/ISpace';
+import {Space} from '../src/server/boards/Space';
 import {Phase} from '../src/common/Phase';
-import {IParty} from '../src/server/turmoil/parties/IParty';
 import {Turmoil} from '../src/server/turmoil/Turmoil';
 import {Message} from '../src/common/logs/Message';
 import {PolicyId} from '../src/common/turmoil/Types';
@@ -17,17 +15,32 @@ import {CardName} from '../src/common/cards/CardName';
 import {CardType} from '../src/common/cards/CardType';
 import {SpaceId} from '../src/common/Types';
 import {PlayerInput} from '../src/server/PlayerInput';
-import {IActionCard} from '../src/server/cards/ICard';
 import {TestPlayer} from './TestPlayer';
+import {PartyName} from '../src/common/turmoil/PartyName';
+import {IPlayer} from '../src/server/IPlayer';
+import {CardRequirements} from '../src/server/cards/requirements/CardRequirements';
+import {Warning} from '../src/common/cards/Warning';
+import {testGame as testGameProxy} from './TestGame';
+import {LogMessage} from '../src/common/logs/LogMessage';
+
+/**
+ * Creates a new game for testing. Has some hidden behavior for testing:
+ *
+ * 1. If aresExtension is true, and the player has not specifically enabled hazards, disable ares hazards.
+ *    Hazard placement is non-deterministic.
+ * 2. If skipInitialCardSelection is true, then the game ignores initial card selection. It's still
+ *    in an intermediate state, but the game is testable.
+ *
+ * Players are returned in player order, so the first player returned is the first player.
+ *
+ * Test game has a return type with a spread array operator.
+ */
+export const testGame = testGameProxy;
 
 // Returns the oceans created during this operation which may not reflect all oceans.
-export function maxOutOceans(player: Player, toValue: number = 0): Array<ISpace> {
+export function maxOutOceans(player: IPlayer, toValue: number = constants.MAX_OCEAN_TILES): Array<Space> {
   const oceans = [];
-  if (toValue < 1) {
-    toValue = constants.MAX_OCEAN_TILES;
-  }
-
-  while (player.game.board.getOceanCount() < toValue) {
+  while (player.game.board.getOceanSpaces().length < toValue) {
     oceans.push(addOcean(player));
   }
   return oceans;
@@ -45,40 +58,41 @@ export function setVenusScaleLevel(game: IGame, venusScaleLevel: number) {
   (game as any).venusScaleLevel = venusScaleLevel;
 }
 
-export function addGreenery(player: Player, spaceId?: SpaceId): ISpace {
+export function addGreenery(player: IPlayer, spaceId?: SpaceId): Space {
   const space = spaceId ?
-    player.game.board.getSpace(spaceId) :
+    player.game.board.getSpaceOrThrow(spaceId) :
     player.game.board.getAvailableSpacesForGreenery(player)[0];
   player.game.addGreenery(player, space);
   return space;
 }
 
-export function addOcean(player: Player, spaceId?: SpaceId): ISpace {
+export function addOcean(player: IPlayer, spaceId?: SpaceId): Space {
   const space = spaceId ?
-    player.game.board.getSpace(spaceId) :
+    player.game.board.getSpaceOrThrow(spaceId) :
     player.game.board.getAvailableSpacesForOcean(player)[0];
   player.game.addOcean(player, space);
   return space;
 }
 
-export function addCity(player: Player, spaceId?: SpaceId): ISpace {
+export function addCity(player: IPlayer, spaceId?: SpaceId): Space {
   const space = spaceId ?
-    player.game.board.getSpace(spaceId) :
+    player.game.board.getSpaceOrThrow(spaceId) :
     player.game.board.getAvailableSpacesForCity(player)[0];
   player.game.addCity(player, space);
   return space;
 }
 
-export function resetBoard(game: IGame): void {
-  game.board.spaces.forEach((space) => {
-    space.player = undefined;
-    space.tile = undefined;
-  });
-}
+export function setRulingParty(game: IGame, partyName: PartyName, policyId?: PolicyId) {
+  const turmoil = Turmoil.getTurmoil(game);
+  const party = turmoil.getPartyByName(partyName);
+  const resolvedPolicyId = policyId ?? party.policies[0].id;
 
-export function setRulingPartyAndRulingPolicy(game: IGame, turmoil: Turmoil, party: IParty, policyId: PolicyId) {
+  turmoil.rulingPolicy().onPolicyEnd?.(game);
+
   turmoil.rulingParty = party;
-  turmoil.politicalAgendasData.agendas.set(party.name, {bonusId: party.bonuses[0].id, policyId: policyId});
+  turmoil.politicalAgendasData.agendas.set(party.name, {bonusId: party.bonuses[0].id, policyId: resolvedPolicyId});
+  turmoil.rulingPolicy().onPolicyStart?.(game);
+
   game.phase = Phase.ACTION;
 }
 
@@ -90,20 +104,7 @@ export function runAllActions(game: IGame) {
 
 export function runNextAction(game: IGame) {
   const action = game.deferredActions.pop();
-  if (action === undefined) {
-    return undefined;
-  }
-  return action.execute();
-}
-
-// Use churnAction instead.
-export function cardAction(card: IActionCard, player: TestPlayer): PlayerInput | undefined {
-  const input = card.action(player);
-  if (input !== undefined) {
-    return input;
-  }
-  runAllActions(player.game);
-  return player.popWaitingFor();
+  return action?.execute();
 }
 
 export function forceGenerationEnd(game: IGame) {
@@ -112,46 +113,86 @@ export function forceGenerationEnd(game: IGame) {
   game.playerIsFinishedTakingActions();
 }
 
-// Provides a readable version of a log message for easier testing.
-export function formatLogMessage(message: Message): string {
-  return Log.applyData(message, (datum) => datum.value);
-}
-
-// Provides a readable version of a message for easier testing.
+/** Provides a readable version of a message for easier testing. */
 export function formatMessage(message: Message | string): string {
   if (typeof message === 'string') {
     return message;
   }
-  return Log.applyData(message, (datum) => datum.value);
+  const text = Log.applyData(message, (datum) => datum.value.toString());
+  const prefix = (message instanceof LogMessage && message.playerId) ?
+    `(${message.playerId}): ` : '';
+  return prefix + text;
 }
 
-export function testRedsCosts(cb: () => CanPlayResponse, player: Player, initialMegacredits: number, passingDelta: number) {
+/**
+ * Run a few tests to see that a canPlay or canAct behaves correctly in the face of reds costs.
+ *
+ * @param cb the code to invoke that indicates wheter the action can be taken.
+ * @param player player taking the action
+ * @param initialMegacredits starting money
+ * @param passingDelta additional money required to take this action when Reds are in power.. Typically a multiple of 3
+ */
+export function testRedsCosts(cb: () => CanPlayResponse, player: IPlayer, initialMegacredits: number, passingDelta: number) {
   const turmoil = Turmoil.getTurmoil(player.game);
-  turmoil.rulingParty = new Greens();
-  PoliticalAgendas.setNextAgenda(turmoil, player.game);
-  player.megaCredits = initialMegacredits;
-  expect(cb(), 'Greens in power').is.true;
-  turmoil.rulingParty = new Reds();
-  PoliticalAgendas.setNextAgenda(turmoil, player.game);
-  player.megaCredits = initialMegacredits + passingDelta - 1;
-  expect(cb(), 'Reds in power, not enough money').is.false;
-  player.megaCredits = initialMegacredits + passingDelta;
-  expect(cb(), 'Reds in power, enough money').is.true;
+
+  {
+    player.game.phase = Phase.ACTION;
+    turmoil.rulingParty = new Greens();
+    PoliticalAgendas.setNextAgenda(turmoil, player.game);
+    player.megaCredits = initialMegacredits;
+
+    expect(cb(), 'Greens in power').is.true;
+  }
+
+  {
+    turmoil.rulingParty = new Reds();
+    PoliticalAgendas.setNextAgenda(turmoil, player.game);
+    player.megaCredits = initialMegacredits + passingDelta - 1;
+
+    expect(cb(), 'Reds in power, cannot afford').is.false;
+  }
+
+  {
+    turmoil.rulingParty = new Reds();
+    PoliticalAgendas.setNextAgenda(turmoil, player.game);
+    player.megaCredits = initialMegacredits + passingDelta;
+    if (passingDelta > 0) {
+      expect(cb(), 'Reds in power, can afford').is.not.false;
+    }
+  }
 }
 
-const FAKE_CARD_TEMPLATE: IProjectCard = {
-  name: 'HELLO' as CardName,
-  cost: 0,
-  tags: [],
-  canPlay: () => true,
-  play: () => undefined,
-  getVictoryPoints: () => 0,
-  type: CardType.ACTIVE,
-  metadata: {},
-  resourceCount: 0,
-};
-export function fakeCard(card: Partial<IProjectCard>): IProjectCard {
-  return {...FAKE_CARD_TEMPLATE, ...card};
+class FakeCard implements IProjectCard {
+  public name = 'Fake Card' as CardName;
+  public cost = 0;
+  public tags = [];
+  public requirements = [];
+  public warnings = new Set<Warning>();
+  public canPlay(player: IPlayer) {
+    if (this.requirements.length === 0) {
+      return true;
+    }
+    return CardRequirements.compile(this.requirements).satisfies(player);
+  }
+  public play() {
+    return undefined;
+  }
+  public getVictoryPoints() {
+    return 0;
+  }
+  public getGlobalParameterRequirementBonus(): number {
+    return 0;
+  }
+  public type = CardType.ACTIVE;
+  public metadata = {};
+  public resourceCount = 0;
+  public tilesBuilt = [];
+}
+
+export function fakeCard(attrs: Partial<IProjectCard> = {}): IProjectCard {
+  const card = new FakeCard();
+  Object.assign(card, attrs);
+  return card;
 }
 
 type ConstructorOf<T> = new (...args: any[]) => T;
@@ -171,7 +212,7 @@ export function cast<T>(obj: any, klass: ConstructorOf<T> | undefined): T | unde
     return undefined;
   }
   if (!(obj instanceof klass)) {
-    throw new Error(`Not an instance of ${klass.name}: ${obj.constructor.name}`);
+    throw new Error(`Not an instance of ${klass.name}: ${obj?.constructor?.name}`);
   }
   return obj;
 }
@@ -194,29 +235,9 @@ export function finishGeneration(game: IGame): void {
   }
 }
 
-export function getSendADelegateOption(player: Player) {
+export function getSendADelegateOption(player: IPlayer) {
   return player.getActions().options.find(
     (option) => option.title.toString().startsWith('Send a delegate'));
-}
-
-/**
- * Simulate the behavior of a playing a project card run through the deferred action queue, returning the
- * next input the player must supply.
- *
- * ../srcsee churn.
- */
-export function churnPlay(card: IProjectCard, player: TestPlayer) {
-  return churn(() => card.play(player), player);
-}
-
-/**
- * Simulate the behavior of a card action run through the deferred action queue, returning the
- * next input the player must supply.
- *
- * ../srcsee churn.
- */
-export function churnAction(card: IActionCard, player: TestPlayer) {
-  return churn(() => card.action(player), player);
 }
 
 /**
@@ -242,4 +263,12 @@ export function doWait<T>(player: TestPlayer, klass: new (...args: any[]) => T, 
   const [waitingFor, cb] = player.popWaitingFor2();
   f(cast(waitingFor, klass));
   cb?.();
+}
+
+/**
+ * Returns the name of any named item. Ideal for iterating with the Array.map and other iterative functions.
+ */
+// Use common/utils/utils/toName
+export function toName<T>(item: {name: T}): T {
+  return item.name;
 }

@@ -1,8 +1,8 @@
 import {expect} from 'chai';
-import {cast, churnAction, runAllActions, setVenusScaleLevel} from '../../TestingUtils';
+import {cast, churn, runAllActions, setVenusScaleLevel} from '../../TestingUtils';
 import {Thermophiles} from '../../../src/server/cards/venusNext/Thermophiles';
 import {VenusianInsects} from '../../../src/server/cards/venusNext/VenusianInsects';
-import {Game} from '../../../src/server/Game';
+import {IGame} from '../../../src/server/IGame';
 import {OrOptions} from '../../../src/server/inputs/OrOptions';
 import {SelectCard} from '../../../src/server/inputs/SelectCard';
 import {TestPlayer} from '../../TestPlayer';
@@ -11,7 +11,7 @@ import {testGame} from '../../TestGame';
 describe('Thermophiles', function() {
   let card: Thermophiles;
   let player: TestPlayer;
-  let game: Game;
+  let game: IGame;
 
   beforeEach(function() {
     card = new Thermophiles();
@@ -20,12 +20,12 @@ describe('Thermophiles', function() {
 
   it('Can not play', function() {
     setVenusScaleLevel(game, 4);
-    expect(player.simpleCanPlay(card)).is.not.true;
+    expect(card.canPlay(player)).is.not.true;
   });
 
   it('Should play', function() {
     setVenusScaleLevel(game, 6);
-    expect(player.simpleCanPlay(card)).is.true;
+    expect(card.canPlay(player)).is.true;
     cast(card.play(player), undefined);
   });
 
@@ -41,7 +41,7 @@ describe('Thermophiles', function() {
 
     player.addResourceTo(card);
 
-    const orOptions = cast(churnAction(card, player), OrOptions);
+    const orOptions = cast(churn(card.action(player), player), OrOptions);
     orOptions.options[0].cb();
     expect(card.resourceCount).to.eq(0);
     expect(game.getVenusScaleLevel()).to.eq(2);
@@ -58,7 +58,7 @@ describe('Thermophiles', function() {
 
     player.addResourceTo(card);
 
-    const orOptions = cast(churnAction(card, player), OrOptions);
+    const orOptions = cast(churn(card.action(player), player), OrOptions);
     orOptions.options[0].cb();
     expect(card.resourceCount).to.eq(0);
     expect(game.getVenusScaleLevel()).to.eq(2);

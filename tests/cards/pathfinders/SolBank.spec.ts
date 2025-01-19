@@ -1,6 +1,6 @@
 import {expect} from 'chai';
 import {SolBank} from '../../../src/server/cards/pathfinders/SolBank';
-import {Game} from '../../../src/server/Game';
+import {IGame} from '../../../src/server/IGame';
 import {TestPlayer} from '../../TestPlayer';
 import {cast, finishGeneration, runAllActions, setOxygenLevel} from '../../TestingUtils';
 import {testGame} from '../../TestGame';
@@ -18,11 +18,12 @@ import {OrOptions} from '../../../src/server/inputs/OrOptions';
 import {PartyName} from '../../../src/common/turmoil/PartyName';
 import {AsteroidStandardProject} from '../../../src/server/cards/base/standardProjects/AsteroidStandardProject';
 import {SelectCard} from '../../../src/server/inputs/SelectCard';
+import {SelectColony} from '../../../src/server/inputs/SelectColony';
 
 describe('SolBank', () => {
   let solBank: SolBank;
   let player: TestPlayer;
-  let game: Game;
+  let game: IGame;
 
   beforeEach(() => {
     [game, player] = testGame(1, {coloniesExtension: true, turmoilExtension: true});
@@ -30,6 +31,9 @@ describe('SolBank', () => {
     player.playCorporationCard(solBank);
     player.megaCredits = 100;
     game.colonies.push(new Luna());
+
+    // Player is waiting for SelectColony. Popping it. The cast is just to ensure that if this changes, the test changes.
+    cast(player.popWaitingFor(), SelectColony);
   });
 
   it('paying for project card', () => {
@@ -41,6 +45,7 @@ describe('SolBank', () => {
       card: CardName.MICRO_MILLS,
       payment: Payment.of({megaCredits: 3}),
     });
+    runAllActions(game);
 
     expect(solBank.resourceCount).eq(1);
   });
@@ -55,6 +60,7 @@ describe('SolBank', () => {
       card: CardName.MICRO_MILLS,
       payment: Payment.EMPTY,
     });
+    runAllActions(game);
 
     expect(solBank.resourceCount).eq(0);
   });
@@ -70,6 +76,7 @@ describe('SolBank', () => {
       card: CardName.BIOMASS_COMBUSTORS,
       payment: Payment.of({steel: 2}),
     });
+    runAllActions(game);
 
     expect(solBank.resourceCount).eq(1);
   });
@@ -83,12 +90,13 @@ describe('SolBank', () => {
       card: CardName.AEROBRAKED_AMMONIA_ASTEROID,
       payment: Payment.of({titanium: 9}),
     });
+    runAllActions(game);
 
     expect(solBank.resourceCount).eq(1);
   });
 
   it('paying for research cards', () => {
-    player.runResearchPhase(false);
+    player.runResearchPhase();
     runAllActions(game);
     const selectCard = cast(player.popWaitingFor(), SelectCard);
     selectCard.cb([selectCard.cards[1], selectCard.cards[2]]);
@@ -124,7 +132,6 @@ describe('SolBank', () => {
         {'type': 'colony', 'colonyName': ColonyName.LUNA},
       ],
     }, player);
-
     runAllActions(game);
 
     expect(solBank.resourceCount).eq(1);
@@ -148,7 +155,6 @@ describe('SolBank', () => {
         {'type': 'colony', 'colonyName': ColonyName.LUNA},
       ],
     }, player);
-
     runAllActions(game);
 
     expect(player.titanium).eq(97);
@@ -159,14 +165,14 @@ describe('SolBank', () => {
     const turmoil = game.turmoil!;
     player.megaCredits = 6;
     const input = turmoil.getSendDelegateInput(player);
-    input?.process({type: 'party', partyName: PartyName.REDS});
+    input!.process({type: 'party', partyName: PartyName.REDS});
     runAllActions(game);
 
     expect(player.megaCredits).eq(6);
     expect(solBank.resourceCount).eq(0);
 
     const input2 = turmoil.getSendDelegateInput(player);
-    input2?.process({type: 'party', partyName: PartyName.REDS});
+    input2!.process({type: 'party', partyName: PartyName.REDS});
     runAllActions(game);
 
     expect(player.megaCredits).eq(1);
@@ -183,6 +189,7 @@ describe('SolBank', () => {
       type: 'card',
       cards: [CardName.SPACE_ELEVATOR],
     }, player);
+    runAllActions(game);
 
     expect(player.steel).eq(0);
     expect(player.megaCredits).eq(5);

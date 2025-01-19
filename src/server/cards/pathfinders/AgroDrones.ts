@@ -6,8 +6,9 @@ import {CardName} from '../../../common/cards/CardName';
 import {CardRenderer} from '../render/CardRenderer';
 import {IActionCard} from '../ICard';
 import {Resource} from '../../../common/Resource';
-import {CardRequirements} from '../requirements/CardRequirements';
 import {Tag} from '../../../common/cards/Tag';
+import {Units} from '../../../common/Units';
+import {PathfindersExpansion} from '../../pathfinders/PathfindersExpansion';
 
 export class AgroDrones extends Card implements IProjectCard, IActionCard {
   constructor() {
@@ -17,7 +18,7 @@ export class AgroDrones extends Card implements IProjectCard, IActionCard {
       cost: 14,
       tags: [Tag.PLANT, Tag.MARS],
 
-      requirements: CardRequirements.builder((b) => b.temperature(-18)),
+      requirements: {temperature: -18},
       metadata: {
         cardNumber: 'Pf04',
         renderData: CardRenderer.builder((b) => {
@@ -35,10 +36,11 @@ export class AgroDrones extends Card implements IProjectCard, IActionCard {
   }
 
   public action(player: IPlayer) {
-    player.stock.deduct(Resource.STEEL, 1);
-    player.stock.deduct(Resource.ENERGY, 1);
+    // TODO(kberg): add method Stock.adjust?
+    player.stock.deductUnits(Units.of({steel: 1, energy: 1}));
     player.stock.add(Resource.PLANTS, 3);
     player.game.log('${0} spent 1 steel and 1 energy to gain 3 plants.', (b) => b.player(player));
+    PathfindersExpansion.addToSolBank(player);
     return undefined;
   }
 }

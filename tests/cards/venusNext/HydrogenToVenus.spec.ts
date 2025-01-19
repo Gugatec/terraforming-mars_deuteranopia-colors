@@ -6,7 +6,7 @@ import {IProjectCard} from '../../../src/server/cards/IProjectCard';
 import {DeuteriumExport} from '../../../src/server/cards/venusNext/DeuteriumExport';
 import {Dirigibles} from '../../../src/server/cards/venusNext/Dirigibles';
 import {HydrogenToVenus} from '../../../src/server/cards/venusNext/HydrogenToVenus';
-import {Game} from '../../../src/server/Game';
+import {IGame} from '../../../src/server/IGame';
 import {SelectCard} from '../../../src/server/inputs/SelectCard';
 import {TestPlayer} from '../../TestPlayer';
 import {JovianLanterns} from '../../../src/server/cards/colonies/JovianLanterns';
@@ -15,7 +15,7 @@ import {testGame} from '../../TestGame';
 describe('HydrogenToVenus', function() {
   let card: HydrogenToVenus;
   let player: TestPlayer;
-  let game: Game;
+  let game: IGame;
   let venusCard1: IProjectCard;
   let venusCard2: IProjectCard;
   let jovianTagCard1: IProjectCard;
@@ -33,7 +33,7 @@ describe('HydrogenToVenus', function() {
   it('Should play with multiple venus cards', function() {
     player.playedCards.push(venusCard1, jovianTagCard1, venusCard2);
 
-    expect(card.play(player)).is.undefined;
+    cast(card.play(player), undefined);
     runAllActions(game);
 
     const action = cast(player.popWaitingFor(), SelectCard<ICard>);
@@ -45,7 +45,7 @@ describe('HydrogenToVenus', function() {
   it('Should play with multiple jovian tag cards', function() {
     player.playedCards.push(venusCard1, jovianTagCard1, jovianTagCard2);
 
-    expect(card.play(player)).is.undefined;
+    cast(card.play(player), undefined);
     runAllActions(game);
     expect(venusCard1.resourceCount).to.eq(2);
     expect(game.getVenusScaleLevel()).to.eq(2);
@@ -54,7 +54,7 @@ describe('HydrogenToVenus', function() {
   it('Should play with single venus card', function() {
     player.playedCards.push(venusCard1, jovianTagCard1);
 
-    expect(card.play(player)).is.undefined;
+    cast(card.play(player), undefined);
     runAllActions(game);
     cast(player.popWaitingFor(), undefined);
     expect(venusCard1.resourceCount).to.eq(1);

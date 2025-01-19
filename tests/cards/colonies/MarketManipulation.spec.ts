@@ -9,7 +9,7 @@ import {Miranda} from '../../../src/server/colonies/Miranda';
 import {Europa} from './../../../src/server/colonies/Europa';
 import {Pluto} from '../../../src/server/colonies/Pluto';
 import {Callisto} from '../../../src/server/colonies/Callisto';
-import {Game} from '../../../src/server/Game';
+import {IGame} from '../../../src/server/IGame';
 import {TestPlayer} from '../../TestPlayer';
 import {ColonyName} from '../../../src/common/colonies/ColonyName';
 import {cast} from '../../TestingUtils';
@@ -17,7 +17,7 @@ import {cast} from '../../TestingUtils';
 describe('MarketManipulation', function() {
   let card: MarketManipulation;
   let player: TestPlayer;
-  let game: Game;
+  let game: IGame;
 
   beforeEach(function() {
     card = new MarketManipulation();
@@ -58,7 +58,7 @@ describe('MarketManipulation', function() {
     player.game.colonies = [pluto, callisto, europa];
     card.play(player);
     const increaseColonyAction = cast(game.deferredActions.pop()!.execute(), SelectColony);
-    expect(increaseColonyAction.colonies.length).to.eq(2);
+    expect(increaseColonyAction.colonies).has.length(2);
 
     increaseColonyAction.cb(increaseColonyAction.colonies[0]);
     expect(game.colonies[0].trackPosition).to.eq(1);
@@ -66,7 +66,7 @@ describe('MarketManipulation', function() {
     expect(game.colonies[2].trackPosition).to.eq(1);
 
     const decreaseColonyAction = cast(game.deferredActions.pop()!.execute(), SelectColony);
-    expect(decreaseColonyAction.colonies.length).to.eq(1);
+    expect(decreaseColonyAction.colonies).has.length(1);
     decreaseColonyAction.cb(decreaseColonyAction.colonies[0]);
     expect(game.colonies[0].trackPosition).to.eq(1);
     expect(game.colonies[1].trackPosition).to.eq(0);

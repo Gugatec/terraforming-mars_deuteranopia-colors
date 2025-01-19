@@ -1,15 +1,15 @@
 import {expect} from 'chai';
 import {VenusMagnetizer} from '../../../src/server/cards/venusNext/VenusMagnetizer';
-import {Game} from '../../../src/server/Game';
+import {IGame} from '../../../src/server/IGame';
 import {Resource} from '../../../src/common/Resource';
 import {TestPlayer} from '../../TestPlayer';
-import {setVenusScaleLevel} from '../../TestingUtils';
+import {cast, setVenusScaleLevel} from '../../TestingUtils';
 import {testGame} from '../../TestGame';
 
 describe('VenusMagnetizer', function() {
   let card: VenusMagnetizer;
   let player: TestPlayer;
-  let game: Game;
+  let game: IGame;
 
   beforeEach(function() {
     card = new VenusMagnetizer();
@@ -18,13 +18,13 @@ describe('VenusMagnetizer', function() {
 
   it('Can not play', function() {
     setVenusScaleLevel(game, 8);
-    expect(player.simpleCanPlay(card)).is.not.true;
+    expect(card.canPlay(player)).is.not.true;
   });
 
   it('Should play', function() {
     setVenusScaleLevel(game, 10);
-    expect(player.simpleCanPlay(card)).is.true;
-    expect(card.play(player)).is.undefined;
+    expect(card.canPlay(player)).is.true;
+    cast(card.play(player), undefined);
   });
 
   it('Should act', function() {
