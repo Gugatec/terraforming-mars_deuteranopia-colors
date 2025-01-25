@@ -4,14 +4,14 @@ import {Context} from './IHandler';
 import {Request} from '../Request';
 import {Response} from '../Response';
 
-export class ApiIPs extends Handler {
-  public static readonly INSTANCE = new ApiIPs();
-  private constructor() {
-    super({validateServerId: true});
-  }
+/**
+ * This is a vestigial API command whose purpose is to return the _user in the JSON response.
+ */
+export class ApiProfile extends Handler {
+  public static readonly INSTANCE = new ApiProfile();
 
   public override get(_req: Request, res: Response, ctx: Context): Promise<void> {
-    responses.writeJson(res, ctx, ctx.ipTracker.toJSON(), 2);
+    responses.writeJson(res, ctx, {success: true});
     return Promise.resolve();
   }
 }
