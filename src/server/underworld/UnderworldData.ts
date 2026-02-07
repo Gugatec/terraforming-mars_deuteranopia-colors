@@ -1,12 +1,11 @@
 import {UndergroundResourceToken} from '../../common/underworld/UndergroundResourceToken';
+import {Space} from '../boards/Space';
 
 export type UnderworldData = {
   tokens: Array<UndergroundResourceToken>;
 };
 
-type TemperatureBonuses = 'data1pertemp' | 'microbe1pertemp' | 'plant2pertemp' | 'steel2pertemp' | 'titanium1pertemp';
-
-export type UnderworldPlayerData = {
-  corruption: number;
-  temperatureBonus?: TemperatureBonuses,
+export type TokenSources = {
+  spaces: Array<Space>,
+  tokens: Array<UndergroundResourceToken>,
 }

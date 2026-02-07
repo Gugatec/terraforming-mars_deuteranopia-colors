@@ -3,9 +3,10 @@ import {CardName} from '../common/cards/CardName';
 import {Color} from '../common/Color';
 import {SerializedCard} from './SerializedCard';
 import {SerializedTimer} from '../common/SerializedTimer';
-import {UnderworldPlayerData} from './underworld/UnderworldData';
-import {AlliedParty} from './turmoil/AlliedParty';
+import {AlliedParty} from '../common/turmoil/Types';
 import {GlobalParameter} from '../common/GlobalParameter';
+import {DiscordId} from './server/auth/discord';
+import {UnderworldPlayerData} from '../common/underworld/UnderworldPlayerData';
 
 interface DeprecatedFields {
 }
@@ -17,7 +18,6 @@ export interface SerializedPlayer extends DeprecatedFields{
   alliedParty: AlliedParty | undefined;
   autoPass: boolean;
   beginner: boolean;
-  canUseCorruptionAsMegacredits: boolean;
   canUseHeatAsMegaCredits: boolean;
   canUseTitaniumAsMegacredits: boolean;
   canUsePlantsAsMegaCredits: boolean;
@@ -28,7 +28,6 @@ export interface SerializedPlayer extends DeprecatedFields{
   colonyTradeOffset: number;
   colonyVictoryPoints: number;
   color: Color;
-  corporations: Array<SerializedCard>;
   dealtCorporationCards: Array<CardName>;
   dealtCeoCards: Array<CardName>;
   dealtPreludeCards: Array<CardName>;
@@ -38,6 +37,7 @@ export interface SerializedPlayer extends DeprecatedFields{
   energy: number;
   energyProduction: number;
   fleetSize: number;
+  globalParameterSteps: Record<GlobalParameter, number>;
   handicap: number;
   hasIncreasedTerraformRatingThisGeneration: boolean;
   hasTurmoilScienceTagBonus: boolean;
@@ -56,6 +56,7 @@ export interface SerializedPlayer extends DeprecatedFields{
   plantProduction: number;
   plants: number;
   plantsNeededForGreenery: number;
+  plantTagCount: number;
   playedCards: Array<SerializedCard>;
   politicalAgendasActionUsedCount: number;
   preludeCardsInHand: Array<CardName>;
@@ -63,6 +64,7 @@ export interface SerializedPlayer extends DeprecatedFields{
   removedFromPlayCards: Array<CardName>;
   removingPlayers: Array<PlayerId>;
   scienceTagCount: number;
+  standardProjectsThisGeneration: Array<CardName>;
   steel: number;
   steelProduction: number;
   steelValue: number;
@@ -76,5 +78,6 @@ export interface SerializedPlayer extends DeprecatedFields{
   turmoilPolicyActionUsed: boolean;
   underworldData: UnderworldPlayerData;
   victoryPointsByGeneration: Array<number>;
-  globalParameterSteps: Record<GlobalParameter, number>;
+  user?: DiscordId;
+  withinDeflectionZone: boolean;
 }

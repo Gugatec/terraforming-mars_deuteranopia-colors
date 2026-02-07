@@ -14,8 +14,8 @@
           <span class="ma-player-cube">
             <i
               class="board-cube"
-              :class="`board-cube--${award.playerColor}`"
-              :data-test-player-cube="award.playerColor"
+              :class="`board-cube--${award.color}`"
+              :data-test-player-cube="award.color"
             />
           </span>
         </span>
@@ -58,12 +58,12 @@ export default Vue.extend({
   components: {Award},
   props: {
     awards: {
-      type: Array as () => FundedAwardModel[],
+      type: Array as () => Array<FundedAwardModel>,
       required: true,
     },
     showScores: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     preferences: {
       type: Object as () => Readonly<Preferences>,

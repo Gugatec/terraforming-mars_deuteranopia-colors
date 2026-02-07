@@ -1,5 +1,7 @@
+export type DiscordId = string;
+
 export type DiscordUser = {
-  id: string // the user's id identify
+  id: DiscordId // the user's id identity
   username: string // the user's username, not unique across the platform identify
   discriminator: string // the user's Discord-tag identify
   global_name?: string // the user's display name, if it is set. For bots, this is the application name identify
@@ -18,12 +20,14 @@ export type DiscordUser = {
   avatar_decoration_data?: any // data for the user's avatar decoration
 };
 
+const URL_ROOT = process.env.URL_ROOT || 'http://localhost:8080';
+
 export async function getDiscordUser(code: string): Promise<DiscordUser> {
   const data = {
     client_id: process.env['DISCORD_CLIENT_ID'] || '',
     client_secret: process.env['DISCORD_CLIENT_SECRET'] || '',
     grant_type: 'authorization_code',
-    redirect_uri: 'http://localhost:8080/auth/discord/callback',
+    redirect_uri: `${URL_ROOT}/auth/discord/callback`,
     code: code,
     scope: 'identify',
   };
@@ -35,14 +39,51 @@ export async function getDiscordUser(code: string): Promise<DiscordUser> {
       'Content-Type': 'application/x-www-form-urlencoded',
     },
   });
-  const tokenData = await tokenResponse.json();
+
+  const tokenData: TokenData = await tokenResponse.json();
+
+  if (tokenResponse.ok === false) {
+    console.error(tokenResponse.status);
+    console.error(tokenResponse.statusText);
+    console.error('Error fetching auth token: ' + tokenResponse.statusText);
+    {
+      function sanitize(str: string): string {
+        return str.length === 0 ? 'EMPTY' : 'REDACTED';
+      }
+      const sanitized = {
+        ...data,
+        client_id: sanitize(data.client_id),
+        client_secret: sanitize(data.client_secret),
+        code: sanitize(data.code),
+      };
+      console.log(sanitized);
+    }
+
+    throw new Error(`${tokenResponse.status} - for URL root ${URL_ROOT}`);
+  }
 
   const userResponse = await fetch('https://discord.com/api/users/@me', {
     headers: {
       authorization: `${tokenData.token_type} ${tokenData.access_token}`,
     },
   });
+
+  if (userResponse.ok === false) {
+    console.error(userResponse.status);
+    console.error(userResponse.statusText);
+    console.error('Error fetching user: ' + userResponse.statusText);
+    throw new Error(`Fetching user: ${userResponse.status}`);
+  }
+
   const discordUser = await userResponse.json();
+
   return discordUser;
 }
 
+type TokenData = {
+  access_token: string,
+  expires_in: number,
+  refresh_token: string,
+  scope: string,
+  token_type: string,
+}

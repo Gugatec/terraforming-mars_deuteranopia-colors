@@ -6,6 +6,7 @@ import {Space} from './boards/Space';
 import {TileType, tileTypeToString} from '../common/TileType';
 import {IColony} from './colonies/IColony';
 import {Logger} from './logs/Logger';
+import {CardResource} from '../common/CardResource';
 
 export class LogHelper {
   static logAddResource(player: IPlayer, card: ICard, qty: number = 1): void {
@@ -40,12 +41,8 @@ export class LogHelper {
     // Skip solo play random tiles
     if (player.name === 'neutral') return;
 
-    const offset = Math.abs(space.y - 4);
-    const row = space.y + 1;
-    const position = space.x - offset + 1;
-
-    player.game.log('${0} ${1} ${2} on row ${3} position ${4}', (b) =>
-      b.player(player).string(action).string(description).number(row).number(position));
+    player.game.log('${0} ${1} ${2} at ${3}', (b) =>
+      b.player(player).string(action).string(description).space(space));
   }
 
   static logColonyTrackIncrease(player: IPlayer, colony: IColony, steps: number = 1) {
@@ -112,5 +109,9 @@ export class LogHelper {
 
   static logStealFromNeutralPlayer(player: IPlayer, resource: Resource, amount: number) {
     player.game.log('${0} stole ${1} ${2} from the neutral player', (b) => b.player(player).number(amount).string(resource));
+  }
+
+  public static logMoveResource(player: IPlayer, resource: CardResource, from: ICard, to: ICard) {
+    player.game.log('${0} moved 1 ${1} from ${2} to ${3}.', (b) => b.player(player).string(resource).card(from).card(to));
   }
 }
