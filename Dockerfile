@@ -1,5 +1,8 @@
 # Define the version once at the top
 ARG NODE_VERSION=22-alpine3.21
+# Set PREBUILT=true when build/ artifacts are pre-built on the host (e.g. for multiplatform builds
+# where the JS bundler cannot run under QEMU emulation).
+ARG PREBUILT=false
 
 # Intermediate image - base for building and installing dependencies
 FROM node:${NODE_VERSION} AS install
@@ -20,11 +23,13 @@ RUN npm ci
 # Create image for application building
 FROM install AS builder
 
+ARG PREBUILT
+
 # Copy sources
 COPY . .
 
-# Run building
-RUN npm run build
+# Run building; skip when PREBUILT=true (host-built artifacts already in build/ via COPY)
+RUN if [ "$PREBUILT" = "false" ]; then npm run build; fi
 
 
 # Create image to prepare prod dependencies to be copied from

@@ -25,3 +25,5 @@ node_modules/
 # misc
 .gitconfig
 ./logs/
+claude_ai.md
+sync.sh

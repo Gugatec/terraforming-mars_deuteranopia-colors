@@ -8,5 +8,8 @@ tests
 .gitignore
 .gitattributes
 .env.sample
+.env.docker-compose
 .eslintrc.js
-docker-compose.yml
+compose.yml
+sync.sh
+node_modules
