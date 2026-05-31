@@ -27,3 +27,4 @@ node_modules/
 ./logs/
 claude_ai.md
 sync.sh
+build.sh

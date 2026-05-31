@@ -12,4 +12,5 @@ tests
 .eslintrc.js
 compose.yml
 sync.sh
+build.sh
 node_modules
