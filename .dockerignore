@@ -13,4 +13,6 @@ tests
 compose.yml
 sync.sh
 build.sh
+compose-pangolin.yml
+.env.pangolin
 node_modules
