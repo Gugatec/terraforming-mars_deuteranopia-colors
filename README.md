@@ -1,3 +1,107 @@
+# Terraforming Mars — Deuteranopia Edition
+
+This is a personal fork of [terraforming-mars/terraforming-mars](https://github.com/terraforming-mars/terraforming-mars) with color adjustments for **deuteranopia** (red-green color blindness). Player colors and board icons are remapped to be distinguishable without relying on red-green contrast.
+
+**Docker Hub:** [`gugatec/terraforming-mars_deuteranopia-colors`](https://hub.docker.com/r/gugatec/terraforming-mars_deuteranopia-colors)
+
+> **Breaking change — Postgres 14.5 → 18.4:** The database image has been upgraded. Postgres 18 stores data in a version-specific subdirectory, so the volume mount has moved from `/var/lib/postgresql/data` to `/var/lib/postgresql`. If you have an existing database from the previous version, a dump/restore is required before starting the new stack.
+
+---
+
+## What's changed from upstream
+
+Only 3 files differ from the original repository:
+
+| File | Change |
+|---|---|
+| `assets/board_icons.png` | Recolored board icons |
+| `assets/colony_ship.png` | Recolored colony ship |
+| `src/styles/variables.less` | All player colors + text colors adjusted |
+
+### Player color adjustments
+
+| Player | This fork | Upstream |
+|---|---|---|
+| Red | `rgb(185, 56, 2)` | `rgb(153, 17, 0)` |
+| Yellow | `rgb(192, 192, 0)` | `rgb(170, 170, 0)` |
+| Green | `rgb(0, 158, 95)` | `rgb(0, 153, 0)` |
+| Black | `rgb(47, 45, 95)` — dark indigo | `rgb(170, 170, 170)` — grey |
+| Blue | `rgb(22, 159, 204)` | `rgb(0, 102, 255)` |
+| Purple | `rgb(124, 66, 131)` | `rgb(140, 0, 255)` |
+| Orange | `rgb(230, 159, 0)` | `rgb(236, 113, 12)` |
+| Pink | `rgb(251, 218, 212)` | `rgb(245, 116, 187)` |
+
+---
+
+## Running with Docker
+
+The recommended way to run this fork is via Docker Compose with PostgreSQL.
+
+A ready-to-use `compose.yml` and `.env.docker-compose` are included in this repository.
+
+**Setup:**
+```bash
+# 1. Copy the env template to .env (gitignored) and fill in your values
+cp .env.docker-compose .env
+$EDITOR .env
+
+# 2. Start the stack
+docker compose up -d
+```
+
+The app will be available at **http://localhost:`HOST_PORT`** (default: http://localhost:8080).
+
+The admin interface is available at **http://localhost:`HOST_PORT`/game?id=`SERVER_ID`**.
+
+**`compose.yml` — what's included:**
+
+| Service | Image | Notes |
+|---|---|---|
+| `terraforming-mars` | `gugatec/terraforming-mars_deuteranopia-colors:latest` | App, port 8080 |
+| `mars-postgres` | `postgres:18` | Data persisted to `./postgresdb/` |
+
+> **Note (Postgres 18+):** The Docker image stores data under a version-specific subdirectory, so the volume is mounted at `/var/lib/postgresql` rather than `/var/lib/postgresql/data`. If migrating from an older Postgres version, a dump/restore is required before swapping the image.
+
+**`.env` variables** (see `.env.docker-compose`):
+
+| Variable | Description |
+|---|---|
+| `HOST_PORT` | Host port the app is exposed on (container always uses 8080) |
+| `POSTGRES_USER` | PostgreSQL username |
+| `POSTGRES_PASSWORD` | PostgreSQL password |
+| `POSTGRES_DB` | PostgreSQL database name |
+| `SERVER_ID` | Unique identifier for this server instance |
+
+**Stop / update:**
+```bash
+docker compose down
+docker compose pull && docker compose up -d   # pulls latest image then restarts
+```
+
+---
+
+## Syncing with upstream
+
+```bash
+git fetch upstream
+git reset --hard upstream/main
+# restore the 3 modified files, then:
+git add assets/board_icons.png assets/colony_ship.png src/styles/variables.less
+git commit -m "Deuteranopia color adjustments: board icons, colony ship, CSS variables"
+git push origin main --force
+```
+
+---
+
+---
+---
+
+# Original README (upstream)
+
+> The content below is from the original [terraforming-mars/terraforming-mars](https://github.com/terraforming-mars/terraforming-mars) repository. Some sections (Heroku, YunoHost, community Discord) refer to the upstream project and may not apply to this fork.
+
+---
+
 # <a name="README"> Terraforming Mars Open-source
 
 <div align="center">
@@ -29,10 +133,12 @@ to foster. Note that any new features you see on this repo made available on tha
 The board game is great and this repository highly recommends [purchasing it](https://www.amazon.com/Stronghold-Games-6005SG-Terraforming-Board/dp/B01GSYA4K2) for personal use.
 
 ## ⬤ I want to join the community!
-[Join us over on Discord!](https://discord.gg/afeyggbN6Y).
+[Join us over on Discord!](https://discord.gg/afeyggbN6Y) *(Note: this is the upstream project's Discord, not specific to this fork.)*
 
 ## ⬤ I want to play!
-There's a instance available at https://terraforming-mars.herokuapp.com/. It's generally reliable, but read more below.
+There's an instance available at https://terraforming-mars.herokuapp.com/. *(Note: this is the upstream instance without deuteranopia colors. To play with the color adjustments, use the Docker image above.)*
+
+It's generally reliable, but read more below.
 
 There's also this excellent
 [YouTube playlist](https://youtube.com/playlist?list=PLCGE78n9vCqhhmRe9YCrRh2GLNMPB_3j1) focused on tutorials custom for this app.
@@ -68,17 +174,17 @@ The code for the Yunohost Terraforming-Mars package is in this [GitHub repo](htt
 (Warning, this is not specifically supported.)
 
 ## ⬤ I want to report a bug or feature request
-Add it to our [issues tab](https://github.com/bafolts/terraforming-mars/issues/new).
+This fork does not track issues. For bugs related to the game logic or upstream features, please use the [upstream issue tracker](https://github.com/bafolts/terraforming-mars/issues/new). For color/accessibility issues specific to this fork, feel free to open an issue here.
 
 ## ⬤ I want to contribute to development
-See [contribution guide](https://github.com/terraforming-mars/terraforming-mars/blob/main/CONTRIBUTING.md) and [local development setup](https://github.com/terraforming-mars/terraforming-mars/wiki/Local-Setup).
+This is a personal fork and does not actively accept contributions. For the upstream project, see the [contribution guide](https://github.com/terraforming-mars/terraforming-mars/blob/main/CONTRIBUTING.md) and [local development setup](https://github.com/terraforming-mars/terraforming-mars/wiki/Local-Setup).
 
 ## ⬤ I want to win!
 Me too, pal. Me too.
 
 ## ✨ Contributors ✨
 
-Thanks goes to these wonderful people:
+Thanks goes to these wonderful people *(contributors to the upstream project)*:
 
 <table border="0">
   <tdata>

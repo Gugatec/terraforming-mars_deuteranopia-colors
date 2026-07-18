@@ -8,5 +8,11 @@ tests
 .gitignore
 .gitattributes
 .env.sample
+.env.docker-compose
 .eslintrc.js
-docker-compose.yml
+compose.yml
+sync.sh
+build.sh
+compose-pangolin.yml
+.env.pangolin
+node_modules

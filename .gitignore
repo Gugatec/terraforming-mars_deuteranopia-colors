@@ -13,7 +13,6 @@ dist/
 .nyc_output/
 .vscode/
 .idea/
-.zed/
 pid
 *.log
 .eslintcache
@@ -26,3 +25,8 @@ node_modules/
 # misc
 .gitconfig
 ./logs/
+claude_ai.md
+sync.sh
+build.sh
+compose-pangolin.yml
+.env.pangolin

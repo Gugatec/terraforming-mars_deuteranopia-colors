@@ -1,0 +1,38 @@
+services:
+  terraforming-mars:
+    image: gugatec/terraforming-mars_deuteranopia-colors:latest
+    restart: unless-stopped
+    networks:
+      - tmars_net
+    depends_on:
+      - mars-postgres
+    environment:
+      # ?sslmode=disable is required: the app's pg client attempts SSL by default, which the plain postgres container rejects.
+      POSTGRES_HOST: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@mars-postgres/${POSTGRES_DB}?sslmode=disable
+      NODE_ENV: production
+      PORT: 8080
+      SERVER_ID: ${SERVER_ID}
+      MAX_GAME_DAYS: 30
+    ports:
+      - ${HOST_PORT}:8080
+    logging:
+      options:
+        max-size: 10m
+
+  mars-postgres:
+    image: postgres:18
+    restart: unless-stopped
+    networks:
+      - tmars_net
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - ./postgresdb:/var/lib/postgresql
+    logging:
+      options:
+        max-size: 10m
+
+networks:
+  tmars_net:
